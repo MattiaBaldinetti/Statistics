@@ -123,7 +123,15 @@
             <h3>Results at the Break Point:</h3> <!-- Intestazione per i risultati -->
             <div id="risultati"></div> <!-- Div per mostrare i risultati -->
         </div>
-        <canvas id="graphHistogram"></canvas> <!-- Canvas per il grafico a barre -->
+        <canvas id="graphHistogram"></canvas> <!-- Canvas per il grafico istogramma al tempo N -->
+    </div>
+
+    <div class="results-container">
+        <div class="resultsFinals">
+            <h3>Results at the end of the execution:</h3> <!-- Intestazione per i risultati -->
+            <div id="resultsFinals"></div> <!-- Div per mostrare i risultati -->
+        </div>
+        <canvas id="graphFinalHistogram"></canvas> <!-- Canvas per il grafico istogramma finale -->
     </div>
     
 
@@ -163,7 +171,7 @@
             return datasets;  // Restituisce i dataset creati
         }
         
-        // Funzione per creare i dati per il grafico a barre
+        // Funzione per creare i dati per il grafico istogramma al tempo N
         function create_HistogramData(datasets, numberBreakPoint) {
             const resultsBars = datasets.map(dataset => {
                 console.log(dataset.data[numberBreakPoint-1]) // Stampa il valore al Break Point
@@ -181,6 +189,35 @@
                 backgroundColors: backgroundColors // Aggiungi i colori per le barre
             };
         }
+
+        // Funzione per creare i dati del grafico istogramma finale
+        function create_FinalHistogramData(datasets) {
+            // Definisce la funzione `create_FinalHistogramData` che accetta un argomento `datasets`.
+            const finalResultsBars = datasets.map(dataset => {
+                // Crea un nuovo array `finalResultsBars` mappando ogni `dataset` nel suo valore finale.
+                const finalValue = dataset.data[dataset.data.length - 1] || 0;
+                // Estrae l'ultimo valore dal campo `data` dell'oggetto `dataset`. Se non esiste (undefined), viene assegnato il valore 0.
+                return finalValue; 
+                // Restituisce il valore finale estratto per l'elemento corrente.
+            });
+
+            const backgroundColors = datasets.map((dataset, i) => {
+                // Crea un array `backgroundColors`, generando un colore di sfondo per ciascun `dataset`.
+                return `hsl(${240 + i * 75}, 100%, 50%)`; 
+                // Restituisce un colore in formato HSL (Hue, Saturation, Lightness), variando la tonalità in base all'indice `i`. Questo genera colori diversi per ciascun dataset, aumentando la tonalità di 75 gradi per ogni dataset successivo.
+            });
+
+            return { 
+                // Restituisce un oggetto con i dati del grafico.
+                labels: datasets.map(dataset => dataset.label),
+                // Crea un array di etichette (labels) estraendo il campo `label` da ogni `dataset`.
+                data: finalResultsBars,
+                // Includere l'array `finalResultsBars` con i valori finali dei dati.
+                backgroundColors: backgroundColors 
+                // Includere l'array `backgroundColors` con i colori di sfondo generati.
+            };
+        }
+
 
         // Funzione per generare il grafico
         function create_Graph() {
@@ -315,6 +352,102 @@
                     }
                 }
             });
+
+
+            // creazione dell'istogramma finale
+            if (graphFinalHistogram) {
+                graphFinalHistogram.destroy();
+            }
+            // Se l'oggetto `graphFinalHistogram` esiste già (cioè un grafico è già stato disegnato in precedenza), viene distrutto per evitarne la duplicazione.
+
+            const contextFinalHistogram = document.getElementById('graphFinalHistogram').getContext('2d');
+            // Recupera il contesto 2D del canvas HTML con id 'graphFinalHistogram', che sarà usato per disegnare il grafico.
+
+            const finalDataHistogram = create_FinalHistogramData(datasets);
+            // Crea i dati per l'istogramma finale, chiamando la funzione `create_FinalHistogramData` e passando i `datasets` come argomento.
+
+            graphFinalHistogram = new Chart(contextFinalHistogram, {
+                type: 'bar', 
+                // Crea un nuovo oggetto Chart (grafico) di tipo 'bar' (istogramma a barre) utilizzando il contesto recuperato.
+                
+                data: {
+                    labels: finalDataHistogram.labels,
+                    datasets: [{
+                        label: 'Final Servers Penetrated',
+                        data: finalDataHistogram.data,
+                        backgroundColor: finalDataHistogram.backgroundColors,
+                        borderColor: finalDataHistogram.backgroundColors.map(color => color.replace('0.6', '1')), 
+                        // La proprietà `borderColor` imposta i bordi delle barre con colori opachi (sostituendo il valore 0.6 con 1 per rendere il colore del bordo completamente opaco).
+                        
+                        borderWidth: 1
+                    }]
+                },
+                // Definisce i dati del grafico, includendo le etichette (`labels`), i valori (`data`) e lo stile del grafico come i colori di sfondo e di bordo.
+
+                options: {
+                    responsive: true, 
+                    // Rende il grafico responsivo, cioè adattabile alla dimensione dello schermo.
+
+                    plugins: {  
+                        legend: {
+                            display: false
+                        }
+                    },
+                    // Disabilita la visualizzazione della legenda del grafico.
+
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Hacker' }, 
+                            // Aggiunge un titolo all'asse X con il testo 'Hacker'.
+
+                            grid: {
+                                color: '#e0e0e0' 
+                                // Imposta il colore della griglia dell'asse X con un grigio chiaro.
+                            }
+                        },
+                        y: {
+                            beginAtZero: true, 
+                            // Imposta l'asse Y in modo che inizi sempre da zero.
+
+                            max: numberServers,  
+                            // Imposta il valore massimo sull'asse Y pari a `numberServers`.
+
+                            ticks: {
+                                stepSize: 1,  
+                                // Imposta l'incremento dei valori sull'asse Y a 1 (ogni tacca dell'asse Y incrementa di 1).
+
+                            },
+                            grid: {
+                                color: '#e0e0e0' 
+                                // Imposta il colore della griglia dell'asse Y con lo stesso grigio chiaro dell'asse X.
+                            }
+                        },
+                    }
+                }
+            });
+            // Definisce le opzioni di configurazione del grafico, rendendolo responsivo, nascondendo la legenda e configurando gli assi X e Y con griglie di colore chiaro e altre opzioni.
+
+            const sumFinal = finalDataHistogram.data.reduce((a, b) => a + b, 0);
+            // Calcola la somma di tutti i valori nell'istogramma, usando `reduce` per sommare gli elementi del vettore `data`.
+
+            const averageFinal = sumFinal / finalDataHistogram.data.length;
+            // Calcola la media dei valori dell'istogramma, dividendo la somma totale per il numero di valori.
+
+            const variancefinal = finalDataHistogram.data.reduce((acc, value) => acc + Math.pow(value - averageFinal, 2), 0) / finalDataHistogram.data.length;
+            // Calcola la varianza dei valori dell'istogramma, usando `reduce` per sommare i quadrati delle differenze tra ogni valore e la media, poi dividendo per il numero totale di valori.
+
+            const standardDeviationFinal = Math.sqrt(variancefinal);
+            // Calcola la deviazione standard, prendendo la radice quadrata della varianza.
+
+            const resultsDivFinal = document.getElementById('resultsFinals');
+            // Recupera il riferimento al div HTML con id 'resultsFinals' dove verranno mostrati i risultati statistici.
+
+            resultsDivFinal.innerHTML = `
+                <p style="margin-bottom: 10px;"><strong>Mean</strong> of the histogram values: ${averageFinal.toFixed(2)}</p>
+                <p style="margin-bottom: 10px;"><strong>Variance</strong> of the histogram values: ${variancefinal.toFixed(2)}</p>
+                <p><strong>Standard deviation</strong> of the histogram values: ${standardDeviationFinal.toFixed(2)}</p>`;
+            // Aggiorna il contenuto HTML del div 'resultsFinals' con i valori della media, varianza e deviazione standard, formattati con due decimali.
+
 
         }
 

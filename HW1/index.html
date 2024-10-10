@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8"> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <meta charset="UTF-8"></meta> 
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"></meta> 
     <title>Hackers-Servers Simulation Graph</title> 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script> 
@@ -85,23 +85,20 @@
 </head>
 <body>
     <div class="contenitore-input">
+
+        <label for="numberServers">Numbers of Servers (n):</label>
+        <input id="numberServers" min="1" type="number" value="10" />
         
         <label for="numberLines">Numbers of Attackers (m):</label>
-        <input type="number" id="numberLines" value="5" min="1">
+        <input id="numberLines" min="1" type="number" value="5" />
+        
+        <label for="percentageRise">Penetration Probability (p):</label>
+        <input id="percentageRise" max="1" min="0" step="0.1" type="number" value="0.5" />
         
         
-        <label for="numberServers">Numbers of Servers (n):</label>
-        <input type="number" id="numberServers" value="10" min="1">
-        
-        
-        <label for="percentageRise">Penetration Probability (p, 0-1):</label>
-        <input type="number" id="percentageRise" value="0.5" min="0" max="1" step="0.1">
-        
-        
-        <label for="numberBreakPoint">Break Point:</label>
-        <input type="number" id="numberBreakPoint" value="6" min="0" max="50">
+        <label for="numberBreakPoint">Break Point (time N):</label>
+        <input id="numberBreakPoint" min="0" type="number" value="6" />
 
-        
         <button onclick="create_Graph()">Generate Graph</button>
     </div>
 
@@ -109,18 +106,28 @@
         <canvas id="graphLines"></canvas>
     </div>
 
-    <div class="risultati-container">
-        <div class="risultati">
-            <h3>Results at the Break Point:</h3> 
-            <div id="risultati"></div> 
+    <div class="results-container">
+        <div class="results">
+            <h3>Results at time N:</h3> 
+            <div id="results"></div> 
         </div>
         <canvas id="graphHistogram"></canvas> 
+    </div>
+
+
+    <div class="results-container">
+        <div class="resultsFinals">
+            <h3>Results at the end of the execution:</h3> 
+            <div id="resultsFinals"></div> 
+        </div>
+        <canvas id="graphFinalHistogram"></canvas> 
     </div>
     
 
     <script>
         let graphLines = null; 
         let graphHistogram = null; 
+        let graphFinalHistogram = null; // Variabile per il secondo istogramma
 
         function create_LinesData(m, n, p, numberBreakPoint) {
             const datasets = []; 
@@ -142,7 +149,7 @@
                     fill: false, 
                     borderWidth: 2, 
                     borderColor: (ctx) => { 
-                        return ctx.dataIndex >= numberBreakPoint ? 'rgba(0, 0, 0, 0)' : `hsl(${i * 85}, 100%, 50%)`;
+                        return ctx.dataIndex >= numberBreakPoint ? 'rgba(0, 0, 0, 0)' : `hsl(${240 + i * 75}, 100%, 50%)`;
                     }
                 });
             }
@@ -158,12 +165,30 @@
 
             
             const backgroundColors = datasets.map((dataset, i) => {
-                return `hsl(${i * 85}, 100%, 50%)`; 
+                return `hsl(${240 + i * 75}, 100%, 50%)`; 
             });
 
             return { 
                 labels: datasets.map(dataset => dataset.label),
                 data: resultsBars,
+                backgroundColors: backgroundColors 
+            };
+        }
+
+
+        function create_FinalHistogramData(datasets) {
+            const finalResultsBars = datasets.map(dataset => {
+                const finalValue = dataset.data[dataset.data.length - 1] || 0;
+                return finalValue; 
+            });
+
+            const backgroundColors = datasets.map((dataset, i) => {
+                return `hsl(${240 + i * 75}, 100%, 50%)`; 
+            });
+
+            return { 
+                labels: datasets.map(dataset => dataset.label),
+                data: finalResultsBars,
                 backgroundColors: backgroundColors 
             };
         }
@@ -174,9 +199,9 @@
             const numberServers = parseInt(document.getElementById('numberServers').value);
             const percentageRise = parseFloat(document.getElementById('percentageRise').value);
             const numberBreakPoint = parseInt(document.getElementById('numberBreakPoint').value); 
-
             const datasets = create_LinesData(numberLines, numberServers, percentageRise, numberBreakPoint);
 
+            // creation of the line graph
             if (graphLines) {
                 graphLines.destroy();
             }
@@ -185,7 +210,7 @@
             graphLines = new Chart(contextLines, {
                 type: 'line', 
                 data: {
-                    labels: Array.from({ length: numberServers }, (_, i) => `Servers ${i + 1}`), 
+                    labels: Array.from({ length: numberServers }, (__, i) => `Servers ${i + 1}`), 
                     datasets: datasets 
                 },
                 options: {
@@ -201,7 +226,7 @@
                             }
                         },
                         y: {
-                            title: { display: true},
+                            title: { display: true, text: 'Number of Success' },
                             beginAtZero: true,  
                             max: numberServers,  
                             ticks: {
@@ -233,12 +258,13 @@
                 }
             });
                         
+
+            // creation of the histogram at time N
             if (graphHistogram) {
                 graphHistogram.destroy();
             }
 
             const contextHistogram = document.getElementById('graphHistogram').getContext('2d');
-            
             const dataHistogram = create_HistogramData(datasets, numberBreakPoint);
             
             graphHistogram = new Chart(contextHistogram, {
@@ -281,7 +307,79 @@
                 }
             });
 
+            const sum = dataHistogram.data.reduce((a, b) => a + b, 0);
+            const average = sum / dataHistogram.data.length;
+            const variance = dataHistogram.data.reduce((acc, value) => acc + Math.pow(value - average, 2), 0) / dataHistogram.data.length;
+            const standardDeviation = Math.sqrt(variance);
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <p style="margin-bottom: 10px;"><strong>Mean</strong> of the histogram values: ${average.toFixed(2)}</p>
+                <p style="margin-bottom: 10px;"><strong>Variance</strong> of the histogram values: ${variance.toFixed(2)}</p>
+                <p><strong>Standard deviation</strong> of the histogram values: ${standardDeviation.toFixed(2)}</p>`;
+
+
+            // creation of the final histogram
+            if (graphFinalHistogram) {
+                graphFinalHistogram.destroy();
+            }
+
+            const contextFinalHistogram = document.getElementById('graphFinalHistogram').getContext('2d');
+            const finalDataHistogram = create_FinalHistogramData(datasets);
+
+            graphFinalHistogram = new Chart(contextFinalHistogram, {
+                type: 'bar',
+                data: {
+                    labels: finalDataHistogram.labels,
+                    datasets: [{
+                        label: 'Final Servers Penetrated',
+                        data: finalDataHistogram.data,
+                        backgroundColor: finalDataHistogram.backgroundColors,
+                        borderColor: finalDataHistogram.backgroundColors.map(color => color.replace('0.6', '1')), 
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true, 
+                    plugins: {  
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Hacker' }, 
+                            grid: {
+                                color: '#e0e0e0' 
+                            }
+                        },
+                        y: {
+                            beginAtZero: true, 
+                            max: numberServers,  
+                            ticks: {
+                                stepSize: 1,  
+                            },
+                            grid: {
+                                color: '#e0e0e0' 
+                            }
+                        },
+                    }
+                }
+            });
+
+            const sumFinal = finalDataHistogram.data.reduce((a, b) => a + b, 0);
+            const averageFinal = sumFinal / finalDataHistogram.data.length;
+            const variancefinal = finalDataHistogram.data.reduce((acc, value) => acc + Math.pow(value - average, 2), 0) / finalDataHistogram.data.length;
+            const standardDeviationFinal = Math.sqrt(variancefinal);
+
+            const resultsDivFinal = document.getElementById('resultsFinals');
+            resultsDivFinal.innerHTML = `
+                <p style="margin-bottom: 10px;"><strong>Mean</strong> of the histogram values: ${averageFinal.toFixed(2)}</p>
+                <p style="margin-bottom: 10px;"><strong>Variance</strong> of the histogram values: ${variancefinal.toFixed(2)}</p>
+                <p><strong>Standard deviation</strong> of the histogram values: ${standardDeviationFinal.toFixed(2)}</p>`;
+            
         }
+            
 
         window.onload = create_Graph; 
     </script>
