@@ -138,7 +138,10 @@
 
                 for (let j = 0; j < n; j++) {
                     if (Math.random() < p) { 
-                        currentValue++; 
+                        currentValue++; // Penetration
+                    } 
+                    else{
+                        currentValue--; // No penetration
                     }
                     currentData.push(currentValue);  
                 }
@@ -217,7 +220,7 @@
                     responsive: true, 
                     scales: {
                         x: {
-                            title: { display: true, text: 'Number of Servers' }, 
+                            title: { display: true, text: 'Number of Servers/Failures' }, 
                             grid: {
                                 color: '#e0e0e0'    
                             },
@@ -227,7 +230,7 @@
                         },
                         y: {
                             title: { display: true, text: 'Number of Success' },
-                            beginAtZero: true,  
+                            min: -numberServers,  
                             max: numberServers,  
                             ticks: {
                                 stepSize: 1,  
@@ -242,8 +245,8 @@
                             annotations: {
                                 line1: {
                                     type: 'line',  
-                                    yMin: 0, 
-                                    yMax: numberServers + 1, 
+                                    yMin: -numberServers, 
+                                    yMax: numberServers, 
                                     xMin: numberBreakPoint - 1, 
                                     xMax: numberBreakPoint - 1, 
                                     borderColor: 'black', 
@@ -294,7 +297,7 @@
                             }
                         },
                         y: {
-                            beginAtZero: true, 
+                            min: -numberBreakPoint, 
                             max: numberBreakPoint, 
                             ticks: {
                                 stepSize: 1,  
@@ -354,7 +357,7 @@
                             }
                         },
                         y: {
-                            beginAtZero: true, 
+                            min: -numberServers, 
                             max: numberServers,  
                             ticks: {
                                 stepSize: 1,  
