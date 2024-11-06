@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph and Histogram Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div> 
+        <canvas id="graphCanvas2"></canvas>
+    </div>
+    
+    <div class="results-container">
+    <div class="resultsAbsolute">
+        <h3>Absolute Frequency of Success:</h3> 
+        <div id="resultsAbsolute"></div> 
+    </div>
+        <canvas id="graphAbsoluteFrequency_2"></canvas> 
+    </div>
+    
+    <div class="results-container">
+    <div class="resultsRelative">
+        <h3>Relative Frequency of Success:</h3> 
+        <div id="resultsRelative"></div> 
+    </div>
+        <canvas id="graphRelativeFrequency_2"></canvas> 
+    </div>
+    
+    <div class="results-container">
+    <div class="results">
+        <h3>Results at time N:</h3> 
+        <div id="results"></div> 
+    </div>
+        <canvas id="graphHistogram_2"></canvas> 
+    </div>
+    
+    <div class="results-container">
+    <div class="resultsFinals">
+        <h3>Results at the end of the execution:</h3> 
+        <div id="resultsFinals"></div> 
+    </div>
+        <canvas id="graphFinalHistogram_2"></canvas> 
+    </div>
+
+    <script src="./js/hw2.js"></script>
+
+</body>
+</html>

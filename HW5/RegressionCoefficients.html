@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculation of Regression Coefficients and R<sup>2</sup></title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+        }
+
+        h1 {
+            color: #4a90e2;
+        }
+
+        #data-input, #results {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: left;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .point {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            font-size: 14px;
+            color: #ffffff;
+            background-color: #4a90e2;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #357ab7;
+        }
+
+        #output {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #444;
+        }
+
+        #results {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #444;
+        }
+
+        .result-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Calculation of Regression Coefficients and R<sup>2</sup></h1>
+    
+    <div id="data-input">
+        <h3>Insert the values of x end y</h3>
+        <div id="points">
+            <div class="point">
+                <label>X:</label><input type="number" class="x-value" step="any">
+                <label>Y:</label><input type="number" class="y-value" step="any">
+                <button onclick="removePoint(this)">Delete Point</button>
+            </div>
+        </div>
+        <button onclick="addPoint()">Add Point</button>
+    </div>
+
+    <button onclick="calculate()">Calculate Regression</button>
+
+    <div id="results">
+        <h3>Results:</h3>
+        <p id="output"></p>
+    </div>
+
+    <script>
+        // Function to add a new point
+        function addPoint() {
+            const pointsDiv = document.getElementById("points");
+            const newPoint = document.createElement("div");
+            newPoint.classList.add("point");
+            newPoint.innerHTML = `
+                <label>X:</label><input type="number" class="x-value" step="any">
+                <label>Y:</label><input type="number" class="y-value" step="any">
+                <button onclick="removePoint(this)">Delete Point</button>
+            `;
+            pointsDiv.appendChild(newPoint);
+        }
+
+        // Function to remove a point
+        function removePoint(button) {
+            const pointDiv = button.parentNode;
+            pointDiv.remove();
+        }
+
+        // Function to calculate linear regression
+        function calculate() {
+            const xValues = document.querySelectorAll(".x-value");
+            const yValues = document.querySelectorAll(".y-value");
+            let data = [];
+
+            // Retrieve input values from the interface
+            for (let i = 0; i < xValues.length; i++) {
+                const x = parseFloat(xValues[i].value);
+                const y = parseFloat(yValues[i].value);
+
+                if (!isNaN(x) && !isNaN(y)) {
+                    data.push({ x: x, y: y });
+                }
+            }
+
+            if (data.length < 2) {
+                document.getElementById("output").textContent = "Insert at least two points.";
+                return;
+            }
+
+            const regression = calculateRegression(data);
+            document.getElementById("output").innerHTML = `
+                Intercept (a): ${regression.intercept.toFixed(4)}<br>
+                Slope (b): ${regression.slope.toFixed(4)}<br>
+                R<sup>2</sup>: ${regression.rSquared.toFixed(4)}
+            `;
+        }
+
+        // Function to calculate the slope, intercept, and R^2
+        function calculateRegression(data) {
+            const n = data.length;
+            
+            // Calculate the mean of x and y
+            let xSum = 0, ySum = 0;
+            data.forEach(point => {
+                xSum += point.x;
+                ySum += point.y;
+            });
+            const xMean = xSum / n;
+            const yMean = ySum / n;
+
+            // Calculate the slope (b) and the intercept (a)
+            let numerator = 0, denominator = 0;
+            data.forEach(point => {
+                numerator += (point.x - xMean) * (point.y - yMean);
+                denominator += (point.x - xMean) ** 2;
+            });
+            const b = numerator / denominator;
+            const a = yMean - b * xMean;
+
+            // R^2
+            let ssTotal = 0, ssResidual = 0;
+            data.forEach(point => {
+                const yPred = b * point.x + a;
+                ssTotal += (point.y - yMean) ** 2;
+                ssResidual += (point.y - yPred) ** 2;
+            });
+            const rSquared = 1 - (ssResidual / ssTotal);
+
+            return {
+                intercept: a,
+                slope: b,                
+                rSquared: rSquared
+            };
+        }
+    </script>
+</body>
+</html>
