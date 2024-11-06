@@ -140,13 +140,13 @@
             sessionStorage.setItem('numberBreakPoint', numberBreakPoint);
             sessionStorage.setItem('numberLambda', numberLambda);
 
-            // Clear the existing graph canvas if it exists
+            
             const oldCanvas = document.getElementById("graphCanvas");
             if (oldCanvas) {
                 oldCanvas.remove();
             }
 
-            // Create a new canvas for the graph
+            
             const newCanvas = document.createElement('canvas');
             newCanvas.id = "graphCanvas";
             document.getElementById("graphLines").appendChild(newCanvas);
@@ -160,7 +160,7 @@
                 return;
             }
 
-            graphDiv.innerHTML = ""; // Clear the previous content */
+            graphDiv.innerHTML = ""; 
 
             let htmlUrl = "";
             let scriptUrl = "";
@@ -192,9 +192,8 @@
             }
 
 
-            // Load the HTML content dynamically
+            
             function loadContent(htmlUrl, scriptUrl) {
-                // Carica il contenuto HTML
                 fetch(htmlUrl)
                     .then(response => {
                         if (!response.ok) throw new Error(`Failed to load ${htmlUrl}`);
@@ -203,22 +202,18 @@
                     .then(htmlContent => {
                         document.getElementById("graphLines").innerHTML = htmlContent;
 
-                        // Dopo aver caricato l'HTML, rimuovi lo script precedente, se esiste
                         const oldScript = document.getElementById('dynamicScript');
                         if (oldScript) {
                             oldScript.remove();
                         }
 
-                        // Crea e aggiungi il nuovo script
                         const script = document.createElement('script');
                         script.id = 'dynamicScript';
                         script.src = scriptUrl;
 
-                        // Esegui il callback dopo il caricamento dello script
                         script.onload = function() {
                             console.log(`${scriptUrl} caricato con successo`);
 
-                            // Verifica che la funzione esista prima di chiamarla
                             if (typeof create_Graph === "function") {
                                 setTimeout(create_Graph, 100); // Chiama la funzione se esiste
                             } else {
@@ -226,7 +221,6 @@
                             }
                         };
 
-                        // Aggiungi lo script al DOM
                         document.body.appendChild(script);
                     })
                     .catch(error => console.error(error));
