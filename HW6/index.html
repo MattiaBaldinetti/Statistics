@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Distribuzione Empirica vs Teorica</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            margin-right: 10px;
+            text-align: center;
+        }
+
+        .probabilities-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .probability-input {
+            width: 50px;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #inputForm {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+    </style>
+</head>
+<body>
+    <h2>Enter the values and probabilities</h2>
+    <form id="inputForm">
+        <label for="valuesInput">Number of values:</label>
+        <input type="number" id="valuesInput" min="1" max="10" value="1" oninput="updateProbabilityFields()">
+        <br>
+        <label>Probability:</label>
+        <div id="probabilitiesContainer" class="probabilities-container">
+            <input type="number" step="0.01" class="probability-input" value="1">
+        </div>
+        <br>
+        <button type="button" onclick="generateAndPlot()">Generate Graphs</button>
+    </form>
+
+    <h2>Distribution chart</h2>
+    <canvas id="distributionChart" width="400" height="150"></canvas>
+
+    
+    <div id="resultsBox" style="border: 1px solid #ccc; padding: 5px; margin-bottom: 20px; width: 300px; text-align: center; margin-top: 20px; justify-content: center;">
+        <h2>Final results</h2>
+        <p><strong>Theoretical Mean:</strong> <span id="theoreticalMean"></span></p>
+        <p><strong>Empirical Mean:</strong> <span id="empiricalMean"></span></p>
+        <p><strong>Theoretical Variance:</strong> <span id="theoreticalVariance"></span></p>
+        <p><strong>Empirical Variance:</strong> <span id="empiricalVariance"></span></p>
+    </div>
+
+    <h2>Graph of Mean and Variance</h2>
+    <canvas id="meanVarianceChart" width="400" height="150"></canvas>
+
+    <script>
+        let distributionChart, meanVarianceChart;
+
+        function updateProbabilityFields() {
+            const valuesCount = parseInt(document.getElementById('valuesInput').value, 10);
+            const probabilitiesContainer = document.getElementById('probabilitiesContainer');
+            probabilitiesContainer.innerHTML = ''; 
+
+            const probabilityValue = (1 / valuesCount).toFixed(4);
+
+            for (let i = 0; i < valuesCount; i++) {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.step = '0.01';
+                input.className = 'probability-input';
+                input.placeholder = `Prob ${i + 1}`;
+                input.value = probabilityValue;
+                probabilitiesContainer.appendChild(input);
+            }
+        }
+
+        function generateAndPlot() {
+            const valuesCount = parseInt(document.getElementById('valuesInput').value, 10);
+            const probabilitiesInputs = document.querySelectorAll('.probability-input');
+            const values = Array.from({ length: valuesCount }, (_, i) => i + 1);
+            const probabilities = Array.from(probabilitiesInputs).map(input => parseFloat(input.value));
+
+            if (values.length !== probabilities.length) {
+                alert("The number of values and probabilities must be equal.");
+                return;
+            }
+
+            const probabilitySum = probabilities.reduce((acc, p) => acc + p, 0);
+            if (Math.abs(probabilitySum - 1) > 0.01) {
+                alert("The sum of the probabilities must be 1.");
+                return;
+            }
+
+            runSimulation(values, probabilities);
+        }
+
+        function runSimulation(values, probabilities) {
+            function sampleFromDistribution() {
+                const random = Math.random();
+                let cumulative = 0;
+
+                for (let i = 0; i < probabilities.length; i++) {
+                    cumulative += probabilities[i];
+                    if (random < cumulative) {
+                        return values[i];
+                    }
+                }
+            }
+
+            function calculateEmpiricalDistribution(samples) {
+                const frequency = {};
+                values.forEach(value => frequency[value] = 0);
+                samples.forEach(sample => frequency[sample]++);
+                const empiricalDistribution = {};
+                values.forEach(value => {
+                    empiricalDistribution[value] = frequency[value] / samples.length;
+                });
+                return empiricalDistribution;
+            }
+
+            function calculateMeanAndVariance(samples) {
+                let mean = 0;
+                let variance = 0;
+                let n = 0;
+
+                samples.forEach(sample => {
+                    n++;
+                    const delta = sample - mean;
+                    mean += delta / n;
+                    variance += delta * (sample - mean);
+                });
+
+                variance = variance / (n - 1);
+                return { mean, variance };
+            }
+
+            function calculateTheoreticalMeanAndVariance() {
+                const mean = values.reduce((acc, val, i) => acc + val * probabilities[i], 0);
+                const variance = values.reduce((acc, val, i) => acc + probabilities[i] * (val - mean) ** 2, 0);
+                return { mean, variance };
+            }
+
+            const samples = [];
+            const results = [];
+            const theoretical = calculateTheoreticalMeanAndVariance();
+
+            for (let i = 0; i < 1000; i++) {
+                samples.push(sampleFromDistribution());
+
+                if ((i + 1) % 100 === 0) {
+                    const empiricalDist = calculateEmpiricalDistribution(samples);
+                    const empiricalMeanVar = calculateMeanAndVariance(samples);
+                    results.push({
+                        sampleSize: i + 1,
+                        empiricalDistribution: empiricalDist,
+                        empiricalMean: empiricalMeanVar.mean,
+                        empiricalVariance: empiricalMeanVar.variance,
+                        theoreticalMean: theoretical.mean,
+                        theoreticalVariance: theoretical.variance
+                    });
+                }
+            }
+
+            const sampleSizes = results.map(result => result.sampleSize);
+            const empiricalMeans = results.map(result => result.empiricalMean);
+            const empiricalVariances = results.map(result => result.empiricalVariance);
+            const theoreticalMean = theoretical.mean;
+            const theoreticalVariance = theoretical.variance;
+
+            document.getElementById('theoreticalMean').textContent = theoreticalMean.toFixed(4);
+            document.getElementById('theoreticalVariance').textContent = theoreticalVariance.toFixed(4);
+            document.getElementById('empiricalMean').textContent = empiricalMeans[empiricalMeans.length - 1].toFixed(4);
+            document.getElementById('empiricalVariance').textContent = empiricalVariances[empiricalVariances.length - 1].toFixed(4);
+
+            const distributionData = {
+                labels: values.map(String),
+                datasets: [{
+                    label: 'Theoretical Distribution',
+                    data: probabilities,
+                    backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 1
+                }]
+            };
+
+            results.forEach((result, index) => {
+                const empiricalDist = Object.values(result.empiricalDistribution);
+                distributionData.datasets.push({
+                    label: `Samples: ${result.sampleSize}`,
+                    data: empiricalDist,
+                    backgroundColor: `rgba(255, ${index * 30 % 255}, ${index * 20 % 255}, 0.5)`,
+                    borderColor: `rgba(255, ${index * 30 % 255}, ${index * 20 % 255}, 1)`,
+                    borderWidth: 1
+                });
+            });
+
+            if (distributionChart) distributionChart.destroy();
+            const ctx1 = document.getElementById('distributionChart').getContext('2d');
+            distributionChart = new Chart(ctx1, {
+                type: 'bar',
+                data: distributionData,
+                options: { responsive: true, scales: { y: { beginAtZero: true, max: 1 } } }
+            });
+
+            if (meanVarianceChart) meanVarianceChart.destroy();
+            const ctx2 = document.getElementById('meanVarianceChart').getContext('2d');
+            meanVarianceChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: sampleSizes,
+                    datasets: [
+                        {
+                            label: 'Empirical Mean',
+                            data: empiricalMeans,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            fill: false,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Empirical Variance',
+                            data: empiricalVariances,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            fill: false,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Theoretical Mean',
+                            data: Array(sampleSizes.length).fill(theoreticalMean),
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            fill: false,
+                            borderWidth: 2,
+                            borderDash: [5, 5]
+                        },
+                        {
+                            label: 'Theoretical Variance',
+                            data: Array(sampleSizes.length).fill(theoreticalVariance),
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            fill: false,
+                            borderWidth: 2,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: {
+                        datalabels: {
+                            display: true,
+                            formatter: function(value) {
+                                return value.toFixed(4);
+                            }
+                        }
+                    },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true 
+                        } 
+                    } 
+                }
+            });
+        }
+    </script>
+</body>
+</html>
