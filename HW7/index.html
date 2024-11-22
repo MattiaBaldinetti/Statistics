@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Homework 7</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+        }
+        h2 { color: #333; }
+        form {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            margin-right: 10px;
+            text-align: center;
+        }
+        .probabilities-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .probability-input {
+            width: 50px;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0056b3; }
+        canvas { margin-bottom: 30px; }
+        #resultsBox {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            width: 300px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h2>Enter the values and probabilities</h2>
+    <form id="inputForm">
+        <label for="valuesInput" style="margin-bottom: 5px;">Number of values:</label>
+        <input type="number" id="valuesInput" min="1" max="10" value="2" oninput="updateProbabilityFields()">
+
+        <label for="numSamples" style="margin-bottom: 5px;">Number of samples (m):</label>
+        <input type="number" id="numSamples" min="10" max="1000" value="100">
+
+        <label for="sampleSize" style="margin-bottom: 5px;">Sample size (n):</label>
+        <input type="number" id="sampleSize" min="5" max="100" value="20">
+
+        <label style="margin-bottom: 5px;">Probability:</label>
+        <div id="probabilitiesContainer" class="probabilities-container">
+            <input type="number" step="0.01" class="probability-input" value="0.5">
+            <input type="number" step="0.01" class="probability-input" value="0.5">
+        </div>
+
+        <button type="button" onclick="generateAndPlot()"><b>Generate Graphs</b></button>
+    </form>
+
+    <h2>Distribution Chart</h2>
+    <canvas id="distributionChart" width="400" height="150"></canvas>
+
+    <div id="resultsBox">
+        <h2>Final results</h2>
+        <p><strong>Theoretical Mean:</strong> <span id="theoreticalMean"></span></p>
+        <p><strong>Empirical Mean:</strong> <span id="empiricalMean"></span></p>
+        <p><strong>Theoretical Variance:</strong> <span id="theoreticalVariance"></span></p>
+        <p><strong>Empirical Variance:</strong> <span id="empiricalVariance"></span></p>
+    </div>
+
+    <h2>Sampling Averages Chart</h2>
+    <canvas id="averagesChart" width="400" height="150"></canvas>
+
+    <script>
+        let distributionChart, averagesChart;
+
+        function updateProbabilityFields() {
+            const valuesCount = parseInt(document.getElementById('valuesInput').value, 10);
+            const probabilitiesContainer = document.getElementById('probabilitiesContainer');
+            probabilitiesContainer.innerHTML = ''; 
+
+            const probabilityValue = (1 / valuesCount).toFixed(2);
+
+            for (let i = 0; i < valuesCount; i++) {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.step = '0.01';
+                input.className = 'probability-input';
+                input.value = probabilityValue;
+                probabilitiesContainer.appendChild(input);
+            }
+        }
+
+        function generateAndPlot() {
+            const valuesCount = parseInt(document.getElementById('valuesInput').value, 10);
+            const probabilitiesInputs = document.querySelectorAll('.probability-input');
+            const m = parseInt(document.getElementById('numSamples').value, 10);
+            const n = parseInt(document.getElementById('sampleSize').value, 10);
+            const values = Array.from({ length: valuesCount }, (_, i) => i + 1);
+            const probabilities = Array.from(probabilitiesInputs).map(input => parseFloat(input.value));
+
+            if (values.length !== probabilities.length) {
+                alert("The number of values and probabilities must be equal.");
+                return;
+            }
+
+            const probabilitySum = probabilities.reduce((acc, p) => acc + p, 0);
+            if (Math.abs(probabilitySum - 1) > 0.01) {
+                alert("The sum of the probabilities must be 1.");
+                return;
+            }
+
+            runSimulation(values, probabilities, m, n);
+        }
+
+        function runSimulation(values, probabilities, m, n) {
+            function sampleFromDistribution() {
+                const random = Math.random();
+                let cumulative = 0;
+
+                for (let i = 0; i < probabilities.length; i++) {
+                    cumulative += probabilities[i];
+                    if (random < cumulative) {
+                        return values[i];
+                    }
+                }
+            }
+
+            const samples = Array.from({ length: m }, () => 
+                Array.from({ length: n }, () => sampleFromDistribution())
+            );
+
+            const averages = samples.map(sample => 
+                sample.reduce((acc, val) => acc + val, 0) / sample.length
+            );
+
+            const theoreticalMean = values.reduce((acc, val, i) => acc + val * probabilities[i], 0);
+            const theoreticalVariance = values.reduce((acc, val, i) => acc + probabilities[i] * (val - theoreticalMean) ** 2, 0);
+            const empiricalMean = averages.reduce((acc, val) => acc + val, 0) / m;
+            const empiricalVariance = averages.reduce((acc, val) => acc + (val - empiricalMean) ** 2, 0) / m;
+
+            document.getElementById('theoreticalMean').textContent = theoreticalMean.toFixed(4);
+            document.getElementById('theoreticalVariance').textContent = theoreticalVariance.toFixed(4);
+            document.getElementById('empiricalMean').textContent = empiricalMean.toFixed(4);
+            document.getElementById('empiricalVariance').textContent = empiricalVariance.toFixed(4);
+
+            plotCharts(samples, averages, values, probabilities, m, n);
+        }
+
+        function plotCharts(samples, averages, values, probabilities, m, n) {
+            const empiricalFrequencies = {};
+            values.forEach(value => {
+                empiricalFrequencies[value] = samples.flat().filter(v => v === value).length / (m * n);
+            });
+
+            const labels = values.map(String);
+            const empiricalData = values.map(v => empiricalFrequencies[v]);
+            const theoreticalData = probabilities;
+
+            const distributionData = {
+                labels,
+                datasets: [
+                    { label: 'Theoretical Distribution', data: theoreticalData, backgroundColor: 'rgba(255, 99, 132, 0.5)' },
+                    { label: 'Empirical Distribution', data: empiricalData, backgroundColor: 'rgba(54, 162, 235, 0.5)' }
+                ]
+            };
+
+            if (distributionChart) distributionChart.destroy();
+            const ctx1 = document.getElementById('distributionChart').getContext('2d');
+            distributionChart = new Chart(ctx1, { type: 'bar', data: distributionData, options: { responsive: true } });
+
+            const averagesData = {
+                labels: Array.from({ length: m }, (_, i) => i + 1),
+                datasets: [{ label: 'Sample Averages', data: averages, borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 2 }]
+            };
+
+            if (averagesChart) averagesChart.destroy();
+            const ctx2 = document.getElementById('averagesChart').getContext('2d');
+            averagesChart = new Chart(ctx2, { type: 'line', data: averagesData, options: { responsive: true, scales: { y: { beginAtZero: true } } } });
+        }
+
+        updateProbabilityFields();
+    </script>
+</body>
+</html>

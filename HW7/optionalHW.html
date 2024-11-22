@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributions Y</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        canvas {
+            margin-top: 30px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Distributions Y for different values of g and n</h1>
+    <p>Check the table below for the results of the distributions and entropy.</p>
+
+    <h2>Results for n = 19 and g = 2, 3, 10, 17</h2>
+    <table id="tableA">
+        <thead>
+            <tr>
+                <th>g</th>
+                <th>Entropy</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    <canvas id="chartA" width="400" height="200"></canvas>
+
+    <h2>Results for n = 15 and g = 3, 6, 9, 12</h2>
+    <table id="tableB">
+        <thead>
+            <tr>
+                <th>g</th>
+                <th>Entropy</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    <canvas id="chartB" width="400" height="200"></canvas>
+
+    <script>
+        function generateYDistribution(n, g, maxU) {
+            const yValues = [];
+            for (let u = 1; u <= maxU; u++) {
+                const y = Math.pow(g, u) % n;
+                yValues.push(y);
+            }
+            return yValues;
+        }
+
+        function calculateEntropy(values) {
+            const frequency = {};
+            values.forEach(value => {
+                frequency[value] = (frequency[value] || 0) + 1;
+            });
+            
+            const total = values.length;
+            let entropy = 0;
+            for (const freq of Object.values(frequency)) {
+                const probability = freq / total;
+                entropy -= probability * Math.log2(probability);
+            }
+            return entropy;
+        }
+
+        function plotChart(ctxId, gValues, entropies, title) {
+            const ctx = document.getElementById(ctxId).getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: gValues,
+                    datasets: [{
+                        label: 'Entropy',
+                        data: entropies,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: title
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'g Values'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Entropy'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function analyzeDistributions() {
+            const n1 = 19, n2 = 15;
+            const gValuesA = [2, 3, 10, 17];
+            const gValuesB = [3, 6, 9, 12];
+            const maxU = 1000; 
+            
+            let entropiesA = [];
+            let entropiesB = [];
+            
+            const tableA = document.getElementById('tableA').getElementsByTagName('tbody')[0];
+            gValuesA.forEach(g => {
+                const yDistribution = generateYDistribution(n1, g, maxU);
+                const entropy = calculateEntropy(yDistribution);
+                entropiesA.push(entropy);
+                const row = tableA.insertRow();
+                row.insertCell(0).textContent = g;
+                row.insertCell(1).textContent = entropy.toFixed(3);
+            });
+
+            const tableB = document.getElementById('tableB').getElementsByTagName('tbody')[0];
+            gValuesB.forEach(g => {
+                const yDistribution = generateYDistribution(n2, g, maxU);
+                const entropy = calculateEntropy(yDistribution);
+                entropiesB.push(entropy);
+                const row = tableB.insertRow();
+                row.insertCell(0).textContent = g;
+                row.insertCell(1).textContent = entropy.toFixed(3);
+            });
+
+            plotChart('chartA', gValuesA, entropiesA, 'Entropy for n = 19');
+            plotChart('chartB', gValuesB, entropiesB, 'Entropy for n = 15');
+        }
+
+        analyzeDistributions();
+    </script>
+</body>
+</html>
