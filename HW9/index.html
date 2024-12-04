@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caesar Cipher and Frequency Analysis</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    
+
+    h1 {
+      color: #2d3b4f;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      color: #4a90e2;
+      margin-top: 30px;
+    }
+
+    label {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    input[type="number"], textarea {
+      font-size: 1em;
+      padding: 10px;
+      margin: 10px 0 20px 0;
+      width: 100%;
+      max-width: 600px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      background-color: #fff;
+    }
+
+    input[type="number"] {
+      max-width: 100px;
+    }
+
+    button {
+      font-size: 1.1em;
+      padding: 10px 20px;
+      background-color: #4a90e2;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #357ABD;
+    }
+
+    textarea {
+      height: 150px;
+      resize: vertical;
+      font-family: "Courier New", Courier, monospace;
+    }
+
+    #originalFrequency, #encryptedFrequency {
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 5px;
+      font-family: "Courier New", Courier, monospace;
+      margin-top: 1x;
+      border-radius: 5px;
+    }
+    
+    #output {
+      background-color: #ffffff;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      text-align: center; 
+      display: flex;
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center; 
+      width: 100%; 
+      max-width: 600px; 
+      height: auto; 
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); 
+      margin-bottom: 25px;
+    }
+
+    canvas {
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+    
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div>
+    <h1>Caesar Cipher and Frequency Analysis</h1>
+    
+    <div>
+      <label for="shift">Choose a shift value (1-25):</label>
+      <input type="number" id="shift" min="1" max="25" value="1">
+      <button onclick="runCipher();">Run Cipher</button>
+      <button id="insertTextButton">Insert Auto Text</button>
+    </div>
+
+    <div>
+      <h3>Original Text:</h3>
+      <textarea id="originalText" placeholder="Paste your text here (at least 1000 caracters)"></textarea>
+    </div>
+  
+    <div>
+      <h3>Encrypted Text:</h3>
+      <textarea id="encryptedText" readonly></textarea>
+    </div>
+
+    <div>
+      <h3 style="margin-bottom: 5px;">Results</h3>
+      <div id="output"></div>
+    </div>
+    
+    <div>
+      <h3>Distribution of Sampling Variances (Uncorrected)</h3>
+      <canvas id="varianceChartUncorrected" width="600" height="400"></canvas>
+    </div>
+
+    <div>
+      <h3  style="margin-top: 25px;">Distribution of Sampling Variances (Corrected)</h3>
+      <canvas id="varianceChartCorrected" width="400" height="200"></canvas>
+    </div>
+      
+    
+
+  </div>
+
+  <script>
+    let chartInstanceUncorrected = null;
+    let chartInstanceCorrected = null;
+
+
+    function insertText() {
+        document.getElementById("originalText").value = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. N";
+    }
+    document.getElementById("insertTextButton").addEventListener("click", insertText);
+
+
+    const englishFrequencies = {
+        E: 12.7, T: 9.1, A: 8.2, O: 7.5, I: 7.0, N: 6.7, S: 6.3, H: 6.1, R: 6.0, D: 4.3,
+        L: 4.0, C: 2.8, U: 2.8, M: 2.4, W: 2.4, F: 2.2, G: 2.0, Y: 2.0, P: 1.9, B: 1.5,
+        V: 1.0, K: 0.8, J: 0.2, X: 0.2, Q: 0.1, Z: 0.1
+    };
+
+    function calculateFrequencies(text) {
+        const frequencies = {};
+        const totalLetters = text.replace(/[^a-zA-Z]/g, "").length;
+
+        for (const char of text.toUpperCase()) {
+            if (char >= "A" && char <= "Z") {
+            frequencies[char] = (frequencies[char] || 0) + 1;
+            }
+        }
+
+        for (const letter in frequencies) {
+            frequencies[letter] = ((frequencies[letter] / totalLetters) * 100).toFixed(2);
+        }
+        
+        return frequencies;
+    }
+
+    function caesarCipherEncrypt(text, shift) {
+      return text.replace(/[a-zA-Z]/g, (char) => {
+        const isUpper = char === char.toUpperCase();
+        const base = isUpper ? 65 : 97;
+        return String.fromCharCode(((char.charCodeAt(0) - base + shift) % 26) + base);
+      });
+    }
+
+    function caesarCipherDecrypt(text, shift) {
+      return caesarCipherEncrypt(text, 26 - shift); 
+    }
+
+    function runCipher() {
+      const shiftValue = parseInt(document.getElementById("shift").value);
+      const originalText = document.getElementById("originalText").value;
+
+      if (isNaN(shiftValue) || shiftValue < 1 || shiftValue > 25) {
+        alert("Please enter a valid shift value between 1 and 25.");
+        return;
+      }
+
+      const encryptedText = caesarCipherEncrypt(originalText, shiftValue);
+      document.getElementById("encryptedText").value = encryptedText;
+
+      const originalFrequencies = calculateFrequencies(originalText);
+      calculateMeanAndVariance(originalFrequencies);
+
+      const encryptedFrequencies = calculateFrequencies(encryptedText);
+      calculateMeanAndVariance(encryptedFrequencies);
+
+      const statsOriginal = calculateStatistics(originalText);
+      const statsEncrypted = calculateStatistics(encryptedText);
+
+    }
+
+    function calculateMeanAndVariance(frequencies) {
+        const values = Object.values(frequencies).map(Number);
+        const n = values.length;
+
+        const mean = values.reduce((sum, val) => sum + val, 0) / n;
+        const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
+        
+        return { mean, variance };
+    }
+
+    function calculateStatistics(text) {
+        const frequencies = calculateFrequencies(text);
+        const { mean, variance } = calculateMeanAndVariance(frequencies);
+
+        const theoreticalMean = Object.values(englishFrequencies).reduce((sum, val) => sum + val, 0) / Object.values(englishFrequencies).length;
+        const theoreticalVariance = Object.values(englishFrequencies).reduce((sum, val) => sum + Math.pow(val - theoreticalMean, 2), 0) / Object.values(englishFrequencies).length;
+
+        let samplingMeans = [];
+        let samplingVariances = [];
+        let list_samplingVarianceUncorrected = [];
+        let list_samplingVarianceCorrected = [];
+
+        for (let i = 0; i < 100; i++) { 
+            const sampleText = text.slice(i * 10, (i + 1) * 10); 
+            const sampleFrequencies = calculateFrequencies(sampleText);
+            const sampleStats = calculateMeanAndVariance(sampleFrequencies);
+
+            samplingMeans.push(sampleStats.mean);
+            samplingVariances.push(sampleStats.variance);
+
+            const VarianceUncorrected = samplingVariances.reduce((sum, val) => sum + val, 0) / samplingVariances.length;
+
+            const sMean = samplingMeans.reduce((sum, val) => sum + val, 0) / samplingMeans.length;
+
+            if(samplingVariances.length <= 1){
+              const VarianceCorrected = samplingVariances.reduce((sum, val) => sum + (val - sMean) ** 2, 0) / (samplingVariances.length);
+              list_samplingVarianceUncorrected.push(VarianceUncorrected);
+              list_samplingVarianceCorrected.push(VarianceCorrected);
+              console.log("-1");
+            }else{
+              const VarianceCorrected = samplingVariances.reduce((sum, val) => sum + (val - sMean) ** 2, 0) / (samplingVariances.length - 1);
+              list_samplingVarianceUncorrected.push(VarianceUncorrected);
+              list_samplingVarianceCorrected.push(VarianceCorrected);
+              console.log(VarianceCorrected);
+            }
+            
+        }
+        
+        const samplingMean = samplingMeans.reduce((sum, val) => sum + val, 0) / samplingMeans.length;
+
+        const samplingVarianceUncorrected = samplingVariances.reduce((sum, val) => sum + val, 0) / samplingVariances.length;
+
+        const samplingVarianceCorrected = samplingVariances.reduce((sum, val) => sum + (val - samplingMean) ** 2, 0) / (samplingVariances.length - 1);
+
+        const samplingStdDevUncorrected = Math.sqrt(samplingVarianceUncorrected);
+        const samplingStdDevCorrected = Math.sqrt(samplingVarianceCorrected);
+
+        const outputDiv = document.getElementById("output"); 
+
+        outputDiv.innerHTML = `
+          <p><strong>Theoretical Mean:</strong> ${theoreticalMean.toFixed(4)}</p>
+          <p><strong>Theoretical Variance:</strong> ${theoreticalVariance.toFixed(4)}</p>
+          <p><strong>Sample Mean:</strong> ${samplingMean.toFixed(4)}</p>
+          <p><strong>Sample Variance (Uncorrected):</strong> ${samplingVarianceUncorrected.toFixed(4)}</p>
+          <p><strong>Sample Variance (Corrected):</strong> ${samplingVarianceCorrected.toFixed(4)}</p>
+          <p><strong>Standard Deviation (Uncorrected):</strong> ${samplingStdDevUncorrected.toFixed(4)}</p>
+          <p><strong>Standard Deviation (Corrected):</strong> ${samplingStdDevCorrected.toFixed(4)}</p>
+      `;
+
+        plotVarianceChart(list_samplingVarianceUncorrected, list_samplingVarianceCorrected);
+
+        return {
+            theoreticalMean,
+            theoreticalVariance,
+            samplingMean,
+            samplingVarianceUncorrected,
+            samplingStdDevUncorrected,
+            samplingVarianceCorrected,
+            samplingStdDevCorrected
+        };
+    }
+
+    function plotVarianceChart(samplingVariancesUncorrected, samplingVariancesCorrected) {
+      if (!samplingVariancesUncorrected || !samplingVariancesCorrected || 
+          samplingVariancesUncorrected.length === 0 || samplingVariancesCorrected.length === 0) {
+          console.log("I dati sono vuoti o non validi.");
+          return;
+      }
+
+      if (chartInstanceUncorrected) {
+          chartInstanceUncorrected.destroy();
+      }
+      if (chartInstanceCorrected) {
+          chartInstanceCorrected.destroy();
+      }
+
+      const ctxUncorrected = document.getElementById("varianceChartUncorrected").getContext("2d");
+      chartInstanceUncorrected = new Chart(ctxUncorrected, {
+          type: "bar",
+          data: {
+              labels: Array.from({ length: samplingVariancesUncorrected.length }, (_, i) => `Sample ${i + 1}`),
+              datasets: [{
+                  label: "Uncorrected Variances",
+                  data: samplingVariancesUncorrected,
+                  backgroundColor: "rgba(255, 99, 132, 0.5)",
+                  borderColor: "rgba(255, 99, 132, 1)",
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              responsive: true,
+              scales: {
+                  y: {
+                      beginAtZero: true
+                  }
+              }
+          }
+      });
+
+      const ctxCorrected = document.getElementById("varianceChartCorrected").getContext("2d");
+      chartInstanceCorrected = new Chart(ctxCorrected, {
+          type: "bar",
+          data: {
+              labels: Array.from({ length: samplingVariancesCorrected.length }, (_, i) => `Sample ${i + 1}`),
+              datasets: [{
+                  label: "Corrected Variances",
+                  data: samplingVariancesCorrected,
+                  backgroundColor: "rgba(54, 162, 235, 0.5)",
+                  borderColor: "rgba(54, 162, 235, 1)",
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              responsive: true,
+              scales: {
+                  y: {
+                      beginAtZero: true
+                  }
+              }
+          }
+      });
+    }
+
+    function clearAndReset() {
+        document.getElementById("originalText").value = '';
+        document.getElementById("encryptedText").value = '';
+    }
+  </script>
+</body>
+</html>

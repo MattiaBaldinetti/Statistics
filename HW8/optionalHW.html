@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caesar Cipher and Frequency Analysis</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #2d3b4f;
+      margin-bottom: 30px;
+    }
+
+    h3 {
+      margin-top: 20px;
+    }
+
+    label {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    input[type="number"], textarea {
+      font-size: 1em;
+      padding: 10px;
+      margin: 10px 0 20px 0;
+      width: 100%;
+      max-width: 600px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      background-color: #fff;
+    }
+
+    input[type="number"] {
+      max-width: 100px;
+    }
+
+    button {
+      font-size: 1.1em;
+      padding: 10px 20px;
+      background-color: #4a90e2;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #357ABD;
+    }
+
+    textarea {
+      height: 150px;
+      resize: vertical;
+      font-family: "Courier New", Courier, monospace;
+    }
+
+    canvas {
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+
+    /* Stile per i riquadri */
+    .box {
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      background-color: #ffffff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .box h3 {
+      color: #2d3b4f;
+      margin-bottom: 10px;
+    }
+
+    .box pre {
+      background-color: #f4f4f9;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 1.1em;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div>
+    <h1>RSA Encoding and Frequency Analysis</h1>
+
+    <label for="shift">Choose an exponent e and a modulus P:</label>
+    <div style="display: flex; align-items: center; gap: 10px; justify-content: center;">
+      <label for="exponent">Exponent (e):</label>
+      <input type="number" id="exponent" placeholder="e.g., 3">
+      <label for="modulus">Modulus (P):</label>
+      <input type="number" id="modulus" placeholder="e.g., 37">
+      <button onclick="runRsaEncoding()">Run RSA Encoding</button>
+    </div>
+
+    <div>
+      <h3>Original Text:</h3>
+      <textarea id="originalText" placeholder="Paste your text here"></textarea>
+    </div>
+
+    <div class="box">
+        <h2>Shannon Entropy</h2>
+        <h3>Numeric Representation:</h3>
+        <pre id="ShannonNumericRepresentation"></pre>
+        <h3>Encoded Values:</h3>
+        <pre id="ShannonEncodedValues"></pre>
+    </div>
+
+    <div>
+        <h3>Numeric Representation:</h3>
+        <pre id="numericRepresentation"></pre>
+        <h3>Encoded Values:</h3>
+        <pre id="encodedValues"></pre>
+    </div>
+
+    <h3 style="margin-top: 50px;">Numeric Representation Frequency:</h3>
+    <canvas id="numericChart" width="400" height="200"></canvas>
+
+    <h3 style="margin-top: 50px;">Encoded Values Frequency:</h3>
+    <canvas id="encodedChart" width="400" height="200"></canvas>
+  </div>
+
+  <script>
+    window.numericChart = null;
+    window.encodedChart = null;
+
+    function rsaEncode(text, e, P) {
+    const numericRepresentation = [];
+    const encodedValues = [];
+
+    for (const char of text.toUpperCase()) {
+        if (char >= "A" && char <= "Z") {
+        const L = char.charCodeAt(0) - 65; // A=0, B=1, ..., Z=25
+        numericRepresentation.push(L);
+        const E = Math.pow(L, e) % P; // Calculate E = L^e mod P
+        encodedValues.push(E);
+        }
+    }
+
+    return { numericRepresentation, encodedValues };
+    }
+
+    function runRsaEncoding() {
+    const originalText = document.getElementById("originalText").value;
+    const e = parseInt(document.getElementById("exponent").value);
+    const P = parseInt(document.getElementById("modulus").value);
+
+    if (isNaN(e) || isNaN(P) || !originalText) {
+        alert("Please enter valid values for the text, exponent, and modulus.");
+        return;
+    }
+
+    const { numericRepresentation, encodedValues } = rsaEncode(originalText, e, P);
+
+    document.getElementById("numericRepresentation").textContent = numericRepresentation.join(", ");
+    document.getElementById("encodedValues").textContent = encodedValues.join(", ");
+
+    createOrUpdateNumericChart(numericRepresentation);
+    createOrUpdateEncodedChart(encodedValues);
+
+    const numericEntropy = calculateShannonEntropy(numericRepresentation);
+    const encodedEntropy = calculateShannonEntropy(encodedValues);
+
+    console.log("Entropia di Shannon (Numeric Representation):", numericEntropy);
+    console.log("Entropia di Shannon (Encoded Values):", encodedEntropy);
+
+    document.getElementById("ShannonNumericRepresentation").textContent = numericEntropy.toFixed(4);
+    document.getElementById("ShannonEncodedValues").textContent = encodedEntropy.toFixed(4);
+
+    }
+
+    function calculateShannonEntropy(data) {
+        const frequencies = {};
+        for (const value of data) {
+        frequencies[value] = (frequencies[value] || 0) + 1;
+        }
+
+        const total = data.length;
+        const probabilities = Object.values(frequencies).map(freq => freq / total);
+
+        let entropy = 0;
+        for (const p of probabilities) {
+        if (p > 0) {
+            entropy -= p * Math.log2(p);
+        }
+        }
+
+        return entropy;
+    }
+
+
+    function createOrUpdateNumericChart(data) {
+    const ctx = document.getElementById("numericChart").getContext("2d");
+
+    if (window.numericChart) {
+        window.numericChart.data.labels = data.map((_, i) => i + 1); 
+        window.numericChart.data.datasets[0].data = data;
+        window.numericChart.update();
+    } else {
+        window.numericChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: data.map((_, i) => i + 1), 
+            datasets: [
+            {
+                label: "Numeric Representation",
+                data: data,
+                backgroundColor: "rgba(75, 192, 192, 0.2)",
+                borderColor: "rgba(75, 192, 192, 1)",
+                borderWidth: 1,
+            },
+            ],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+            legend: { display: true },
+            },
+            scales: {
+            x: { title: { display: true, text: "Position" } },
+            y: { title: { display: true, text: "Value" } },
+            },
+        },
+        });
+    }
+    }
+
+    function createOrUpdateEncodedChart(data) {
+    const ctx = document.getElementById("encodedChart").getContext("2d");
+
+    if (window.encodedChart) {
+        window.encodedChart.data.labels = data.map((_, i) => i + 1); 
+        window.encodedChart.data.datasets[0].data = data;
+        window.encodedChart.update();
+    } else {
+        window.encodedChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: data.map((_, i) => i + 1),
+            datasets: [
+            {
+                label: "Encoded Values",
+                data: data,
+                backgroundColor: "rgba(153, 102, 255, 0.2)",
+                borderColor: "rgba(153, 102, 255, 1)",
+                borderWidth: 1,
+            },
+            ],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+            legend: { display: true },
+            },
+            scales: {
+            x: { title: { display: true, text: "Position" } },
+            y: { title: { display: true, text: "Value" } },
+            },
+        },
+        });
+    }
+    }
+
+  </script>
+</body>
+</html>

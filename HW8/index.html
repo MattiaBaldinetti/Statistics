@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caesar Cipher and Frequency Analysis</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    
+
+    h1 {
+      color: #2d3b4f;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      color: #4a90e2;
+      margin-top: 30px;
+    }
+
+    label {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    input[type="number"], textarea {
+      font-size: 1em;
+      padding: 10px;
+      margin: 10px 0 20px 0;
+      width: 100%;
+      max-width: 600px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      background-color: #fff;
+    }
+
+    input[type="number"] {
+      max-width: 100px;
+    }
+
+    button {
+      font-size: 1.1em;
+      padding: 10px 20px;
+      background-color: #4a90e2;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #357ABD;
+    }
+
+    textarea {
+      height: 150px;
+      resize: vertical;
+      font-family: "Courier New", Courier, monospace;
+    }
+
+    #originalFrequency, #encryptedFrequency {
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 5px;
+      font-family: "Courier New", Courier, monospace;
+      margin-top: 1x;
+      border-radius: 5px;
+    }
+
+    canvas {
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+
+    #detectedShiftDisplay {
+      font-size: 1.2em;
+      color: black;
+      font-weight: bold;
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: white;
+      border: 2px solid white;
+      border-radius: 5px;
+      display: inline-block;
+    }
+    
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div>
+    <h1>Caesar Cipher and Frequency Analysis</h1>
+    
+    <div>
+      <label for="shift">Choose a shift value (1-25):</label>
+      <input type="number" id="shift" min="1" max="25" value="1">
+      <button onclick="runCipher()">Run Cipher</button>
+    </div>
+
+    <div>
+      <h3>Original Text:</h3>
+      <textarea id="originalText" placeholder="Paste your text here"></textarea>
+    </div>
+    
+  
+    <div>
+      <h3>Encrypted Text:</h3>
+      <textarea id="encryptedText" readonly></textarea>
+    </div>
+    
+    <div>
+      <h3>Decrypted Text:</h3>
+      <textarea id="decryptedText" readonly></textarea>
+    </div>
+
+    <p id="detectedShiftDisplay">Detected Shift: </p>
+    
+    
+    <div id="originalFrequency">
+      <h3>Letter Frequency Distribution (Original Text):</h3>
+      <pre id="originalFrequencyData"></pre>
+    </div>
+    
+    <div id="encryptedFrequency">
+      <h3>Letter Frequency Distribution (Encrypted Text):</h3>
+      <pre id="encryptedFrequencyData"></pre>
+    </div>
+    
+    
+
+    <canvas id="originalFrequencyChart" width="400" height="200"></canvas>
+    <canvas id="encryptedFrequencyChart" width="400" height="200"></canvas>
+  </div>
+
+  <script>
+    let originalFrequencyChart = null;
+    let encryptedFrequencyChart = null;
+
+    // Helper to calculate letter frequencies
+    function calculateFrequencies(text) {
+      const frequencies = {};
+      const totalLetters = text.replace(/[^a-zA-Z]/g, "").length;
+
+      // Count each letter
+      for (const char of text.toUpperCase()) {
+        if (char >= "A" && char <= "Z") {
+          frequencies[char] = (frequencies[char] || 0) + 1;
+        }
+      }
+
+      // Calculate relative frequencies (percentage)
+      for (const letter in frequencies) {
+        frequencies[letter] = ((frequencies[letter] / totalLetters) * 100).toFixed(2);
+      }
+
+      return frequencies;
+    }
+
+    // Caesar cipher encryption
+    function caesarCipherEncrypt(text, shift) {
+      return text.replace(/[a-zA-Z]/g, (char) => {
+        const isUpper = char === char.toUpperCase();
+        const base = isUpper ? 65 : 97;
+        const newChar = String.fromCharCode(((char.charCodeAt(0) - base + shift) % 26) + base);
+        return newChar;
+      });
+    }
+
+    // Caesar cipher decryption
+    function caesarCipherDecrypt(text, shift) {
+      return caesarCipherEncrypt(text, 26 - shift); // Reverse the shift
+    }
+
+    // Find likely shift value using frequency analysis
+    function findShift(encryptedFrequencies) {
+      const englishFrequencies = {
+        E: 12.7, T: 9.1, A: 8.2, O: 7.5, I: 7.0, N: 6.7, S: 6.3, H: 6.1, R: 6.0, D: 4.3,
+        L: 4.0, C: 2.8, U: 2.8, M: 2.4, W: 2.4, F: 2.2, G: 2.0, Y: 2.0, P: 1.9, B: 1.5,
+        V: 1.0, K: 0.8, J: 0.2, X: 0.2, Q: 0.1, Z: 0.1
+      };
+
+      let bestShift = 0;
+      let bestScore = Infinity;
+
+      for (let shift = 0; shift < 26; shift++) {
+        let score = 0;
+        for (const letter in englishFrequencies) {
+          const shiftedLetter = String.fromCharCode(((letter.charCodeAt(0) - 65 + shift) % 26) + 65);
+          score += Math.abs((encryptedFrequencies[shiftedLetter] || 0) - englishFrequencies[letter]);
+        }
+
+        if (score < bestScore) {
+          bestScore = score;
+          bestShift = shift;
+        }
+      }
+
+      return bestShift;
+    }
+
+    // Main function to run encryption and analysis
+    function runCipher() {
+      const shiftValue = parseInt(document.getElementById("shift").value);
+      const originalText = document.getElementById("originalText").value;
+
+      if (isNaN(shiftValue) || shiftValue < 1 || shiftValue > 25) {
+        alert("Please enter a valid shift value between 1 and 25.");
+        return;
+      }
+
+      // Encrypt the text
+      const encryptedText = caesarCipherEncrypt(originalText, shiftValue);
+      document.getElementById("encryptedText").value = encryptedText;
+
+      // Decrypt the text using the shift value
+      const decryptedText = caesarCipherDecrypt(encryptedText, shiftValue);
+      document.getElementById("decryptedText").value = decryptedText;
+
+      // Frequency analysis for the original text
+      const originalFrequencies = calculateFrequencies(originalText);
+      document.getElementById("originalFrequencyData").textContent = JSON.stringify(originalFrequencies, null, 2).replace(/[{}]/g, '');
+
+      // Frequency analysis for the encrypted text
+      const encryptedFrequencies = calculateFrequencies(encryptedText);
+      document.getElementById("encryptedFrequencyData").textContent = JSON.stringify(encryptedFrequencies, null, 2).replace(/[{}]/g, '');
+
+      // Detect shift
+      const detectedShift = findShift(encryptedFrequencies);
+      document.getElementById("detectedShiftDisplay").textContent = `Detected Shift: ${detectedShift}`;
+
+      createOriginalHistogram(originalFrequencies);
+
+      createEncryptedHistogram(encryptedFrequencies);
+    }
+
+    function createOriginalHistogram(frequencies) {
+      const labels = Object.keys(frequencies).sort();
+      const data = labels.map(letter => frequencies[letter]);
+
+      const ctx = document.getElementById('originalFrequencyChart').getContext('2d');
+      
+      if (originalFrequencyChart) {
+        originalFrequencyChart.destroy(); 
+      }
+
+      originalFrequencyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Letter Frequency Distribution (Original Text) (%)',
+            data: data,
+            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                max: 100
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function createEncryptedHistogram(frequencies) {
+      const labels = Object.keys(frequencies).sort();
+      const data = labels.map(letter => frequencies[letter]);
+
+      const ctx = document.getElementById('encryptedFrequencyChart').getContext('2d');
+
+      if (encryptedFrequencyChart) {
+        encryptedFrequencyChart.destroy(); 
+      }
+
+      encryptedFrequencyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Letter Frequency Distribution (Encrypted Text)  (%)',
+            data: data,
+            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                max: 100
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Clear input fields after processing and add new data dynamically
+    function clearAndReset() {
+      document.getElementById("originalText").value = '';
+      document.getElementById("encryptedText").value = '';
+      document.getElementById("decryptedText").value = '';
+      document.getElementById("originalFrequencyData").textContent = '';
+      document.getElementById("encryptedFrequencyData").textContent = '';
+      
+      const ctxOriginal = document.getElementById('originalFrequencyChart').getContext('2d');
+      const ctxEncrypted = document.getElementById('encryptedFrequencyChart').getContext('2d');
+      ctxOriginal.clearRect(0, 0, ctxOriginal.canvas.width, ctxOriginal.canvas.height);
+      ctxEncrypted.clearRect(0, 0, ctxEncrypted.canvas.width, ctxEncrypted.canvas.height);
+    }
+  </script>
+</body>
+</html>
