@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lebesgue vs Riemann Integral</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin: 5px 0;
+        }
+        input {
+            padding: 5px;
+            width: 200px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007BFF;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lebesgue vs Riemann Integral</h1>
+    <p>Calculate the mean and variance using the Lebesgue and Riemann methods for the Gaussian Probability Density Function (PDF).</p>
+    
+    <div class="input-group">
+        <label for="start">Start of Integration Range (a):</label>
+        <input type="number" id="start" value="-5">
+    </div>
+    <div class="input-group">
+        <label for="end">End of Integration Range (b):</label>
+        <input type="number" id="end" value="5">
+    </div>
+    <div class="input-group">
+        <label for="riemann-points">Number of Points (Riemann):</label>
+        <input type="number" id="riemann-points" value="10000">
+    </div>
+    <div class="input-group">
+        <label for="lebesgue-levels">Number of Levels (Lebesgue):</label>
+        <input type="number" id="lebesgue-levels" value="100">
+    </div>
+    <button onclick="calculateStats()">Calculate Statistics</button>
+
+    <div class="result">
+        <strong>Riemann Mean:</strong> <span id="riemann-mean"></span><br>
+        <strong>Riemann Variance:</strong> <span id="riemann-variance"></span>
+    </div>
+    <div class="result">
+        <strong>Lebesgue Mean:</strong> <span id="lebesgue-mean"></span><br>
+        <strong>Lebesgue Variance:</strong> <span id="lebesgue-variance"></span>
+    </div>
+
+    <div>
+        <p>The results for the mean and variance obtained using the Riemann and Lebesgue integration methods may differ depending on the integration range and the number of points or levels used. Specifically, with larger intervals and a higher number of points or levels, both methods tend to converge quickly to the theoretical values of the normal distribution (mean = 0 and variance = 1). However, by reducing the range or the number of points/levels, the methods may show more noticeable discrepancies due to numerical approximation.</p>
+    </div>
+
+    <script>
+        function gaussianPDF(x, mean, variance) {
+            return (1 / Math.sqrt(2 * Math.PI * variance)) * Math.exp(-Math.pow(x - mean, 2) / (2 * variance));
+        }
+
+        function riemannStats(f, a, b, n) {
+            let dx = (b - a) / n;
+            let sumFx = 0;
+            let sumFx2 = 0;
+
+            for (let i = 0; i < n; i++) {
+                let x = a + i * dx; 
+                let fx = f(x);
+                sumFx += fx * dx;
+                sumFx2 += fx * x * dx;
+            }
+
+            let mean = sumFx2 / sumFx; 
+            let variance = 0;
+
+            for (let i = 0; i < n; i++) {
+                let x = a + i * dx;
+                let fx = f(x);
+                variance += fx * Math.pow(x - mean, 2) * dx;
+            }
+
+            return { mean, variance };
+        }
+
+        function lebesgueStats(f, a, b, n, levels) {
+            let dx = (b - a) / n;
+            let range = [];
+            let binMeasure = new Array(levels).fill(0);
+            let binSum = new Array(levels).fill(0);
+
+            for (let i = 0; i < n; i++) {
+                let x = a + i * dx;
+                range.push({ x: x, fx: f(x) });
+            }
+
+            let min = Math.min(...range.map((r) => r.fx));
+            let max = Math.max(...range.map((r) => r.fx));
+            let binWidth = (max - min) / levels;
+
+            range.forEach(({ x, fx }) => {
+                let binIndex = Math.floor((fx - min) / binWidth);
+                if (binIndex === levels) binIndex--; 
+                binMeasure[binIndex] += dx;
+                binSum[binIndex] += fx * x * dx;
+            });
+
+            let totalMeasure = binMeasure.reduce((a, b) => a + b, 0);
+            let mean = binSum.reduce((sum, bin, i) => sum + (bin / totalMeasure), 0);
+
+            let variance = 0;
+            range.forEach(({ x, fx }) => {
+                variance += fx * Math.pow(x - mean, 2) * dx;
+            });
+
+            return { mean, variance };
+        }
+
+        function calculateStats() {
+            let a = parseFloat(document.getElementById("start").value);
+            let b = parseFloat(document.getElementById("end").value);
+            let riemannPoints = parseInt(document.getElementById("riemann-points").value, 10);
+            let lebesgueLevels = parseInt(document.getElementById("lebesgue-levels").value, 10);
+
+            let mean = 0;
+            let variance = 1;
+
+            let f = (x) => gaussianPDF(x, mean, variance);
+
+            let riemann = riemannStats(f, a, b, riemannPoints);
+            let lebesgue = lebesgueStats(f, a, b, riemannPoints, lebesgueLevels);
+
+            document.getElementById("riemann-mean").textContent = riemann.mean.toFixed(6);
+            document.getElementById("riemann-variance").textContent = riemann.variance.toFixed(6);
+            document.getElementById("lebesgue-mean").textContent = lebesgue.mean.toFixed(6);
+            document.getElementById("lebesgue-variance").textContent = lebesgue.variance.toFixed(6);
+        }
+    </script>
+</body>
+</html>
