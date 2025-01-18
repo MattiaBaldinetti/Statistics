@@ -22,5 +22,5 @@ Name: Mattia Baldinetti
 
 Course: Statistics (Cybersecurity)
 
-University: [La Sapienza University of Rome]
+University: La Sapienza University of Rome
 
